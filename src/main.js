@@ -99,7 +99,7 @@ function handleGameOver() {
   $('final-score').textContent = fmtNum(game.score);
   $('final-level').textContent = game.level;
   $('final-lines').textContent = game.lines;
-  $('nickname').value = localStorage.getItem(NICK_KEY) || '';
+  $('nickname').value = playerNickname || localStorage.getItem(NICK_KEY) || '';
   setStatus($('save-status'), game.score === 0 ? '0점은 저장할 수 없어요.' : '');
   scoreSaved = false;
   $('save-btn').textContent = '점수 저장';
@@ -108,7 +108,32 @@ function handleGameOver() {
   // 하드 드롭(Space) 연타가 닉네임 칸에 입력되지 않도록 바로 포커스하지 않음
 }
 
-$('start-btn').addEventListener('click', startGame);
+// ---------- 시작 화면 닉네임 ----------
+let playerNickname = '';
+const startNick = $('start-nickname');
+startNick.value = localStorage.getItem(NICK_KEY) || '';
+
+function updateStartButton() {
+  $('start-btn').disabled = !validateNickname(startNick.value).ok;
+  setStatus($('start-status'), '');
+}
+startNick.addEventListener('input', updateStartButton);
+updateStartButton();
+
+$('start-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const nick = validateNickname(startNick.value);
+  if (!nick.ok) {
+    setStatus($('start-status'), nick.message, 'error');
+    startNick.focus();
+    return;
+  }
+  playerNickname = nick.value;
+  localStorage.setItem(NICK_KEY, playerNickname);
+  if (!$('fb-nickname').value.trim()) $('fb-nickname').value = playerNickname;
+  startGame();
+});
+
 $('again-btn').addEventListener('click', startGame);
 $('resume-btn').addEventListener('click', togglePause);
 $('restart-btn').addEventListener('click', startGame);

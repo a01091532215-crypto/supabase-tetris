@@ -46,7 +46,12 @@
           <div class="overlay-card" data-screen="start">
             <p class="overlay-kicker">블록을 쌓고, 줄을 지우고, 랭킹에 이름을 올리세요</p>
             <h2 class="overlay-title">READY?</h2>
-            <button id="start-btn" class="btn btn-primary" type="button">게임 시작</button>
+            <form id="start-form" class="score-form" novalidate>
+              <label for="start-nickname" class="sr-only">닉네임</label>
+              <input id="start-nickname" name="nickname" type="text" maxlength="12" placeholder="닉네임 (12자 이하)" autocomplete="nickname" required />
+              <button id="start-btn" class="btn btn-primary" type="submit" disabled>게임 시작</button>
+            </form>
+            <p id="start-status" class="status" role="status" aria-live="polite"></p>
             <p class="overlay-hint">소리가 함께 재생됩니다</p>
           </div>
 
