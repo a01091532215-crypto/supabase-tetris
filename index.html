@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#080c1a" />
+    <title>Supabase Tetris</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4'><rect width='2' height='2' fill='%233ecf8e'/><rect x='2' width='2' height='2' fill='%23b660f2'/><rect y='2' width='2' height='2' fill='%23f5cf3a'/></svg>" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="logo"><span class="logo-mark" aria-hidden="true"></span>SUPABASE <b>TETRIS</b></h1>
+      <div class="sound-toggles">
+        <button id="bgm-toggle" class="chip" type="button" aria-pressed="true" title="배경음 켜기/끄기">♪ BGM</button>
+        <button id="sfx-toggle" class="chip" type="button" aria-pressed="true" title="효과음 켜기/끄기">🔔 SFX</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- 왼쪽: 다음 블록 + 상태 -->
+      <aside class="panel stats-panel" aria-label="게임 정보">
+        <section class="next-box">
+          <h2 class="label">NEXT</h2>
+          <canvas id="next" class="next-canvas" aria-label="다음 블록"></canvas>
+        </section>
+        <dl class="stats">
+          <div><dt class="label">SCORE</dt><dd id="score">0</dd></div>
+          <div><dt class="label">LEVEL</dt><dd id="level">1</dd></div>
+          <div><dt class="label">LINES</dt><dd id="lines">0</dd></div>
+        </dl>
+        <ul class="keys" aria-label="조작법">
+          <li><kbd>← →</kbd> 이동</li>
+          <li><kbd>↑</kbd><kbd>X</kbd> 회전</li>
+          <li><kbd>↓</kbd> 소프트 드롭</li>
+          <li><kbd>Space</kbd> 하드 드롭</li>
+          <li><kbd>P</kbd><kbd>Esc</kbd> 일시정지</li>
+          <li><kbd>M</kbd> 음소거</li>
+        </ul>
+      </aside>
+
+      <!-- 가운데: 보드 -->
+      <section class="board-wrap" aria-label="게임 보드">
+        <canvas id="board" class="board-canvas"></canvas>
+
+        <div id="overlay" class="overlay">
+          <div class="overlay-card" data-screen="start">
+            <p class="overlay-kicker">블록을 쌓고, 줄을 지우고, 랭킹에 이름을 올리세요</p>
+            <h2 class="overlay-title">READY?</h2>
+            <button id="start-btn" class="btn btn-primary" type="button">게임 시작</button>
+            <p class="overlay-hint">소리가 함께 재생됩니다</p>
+          </div>
+
+          <div class="overlay-card" data-screen="paused" hidden>
+            <h2 class="overlay-title">PAUSED</h2>
+            <button id="resume-btn" class="btn btn-primary" type="button">계속하기</button>
+            <button id="restart-btn" class="btn" type="button">처음부터</button>
+          </div>
+
+          <div class="overlay-card" data-screen="over" hidden>
+            <h2 class="overlay-title">GAME OVER</h2>
+            <dl class="final">
+              <div><dt>점수</dt><dd id="final-score">0</dd></div>
+              <div><dt>레벨</dt><dd id="final-level">1</dd></div>
+              <div><dt>줄</dt><dd id="final-lines">0</dd></div>
+            </dl>
+            <form id="score-form" class="score-form" novalidate>
+              <label for="nickname" class="sr-only">닉네임</label>
+              <input id="nickname" name="nickname" type="text" maxlength="12" placeholder="닉네임 (12자 이하)" autocomplete="nickname" />
+              <button id="save-btn" class="btn btn-primary" type="submit">점수 저장</button>
+            </form>
+            <p id="save-status" class="status" role="status" aria-live="polite"></p>
+            <button id="again-btn" class="btn" type="button">다시 하기</button>
+            <button id="goto-feedback" class="link-btn" type="button">피드백 남기기 →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 오른쪽: 리더보드 / 피드백 -->
+      <aside class="panel side-panel">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" id="tab-leaderboard" aria-controls="pane-leaderboard" aria-selected="true">리더보드</button>
+          <button class="tab" role="tab" id="tab-feedback" aria-controls="pane-feedback" aria-selected="false">피드백</button>
+        </div>
+
+        <section id="pane-leaderboard" class="pane" role="tabpanel" aria-labelledby="tab-leaderboard">
+          <div class="pane-head">
+            <h2 class="label">TOP 10</h2>
+            <button id="refresh-scores" class="link-btn" type="button">새로고침</button>
+          </div>
+          <div id="leaderboard" class="list-area"></div>
+        </section>
+
+        <section id="pane-feedback" class="pane" role="tabpanel" aria-labelledby="tab-feedback" hidden>
+          <form id="feedback-form" class="feedback-form" novalidate>
+            <label class="field">
+              <span class="label">닉네임</span>
+              <input id="fb-nickname" name="nickname" type="text" maxlength="12" placeholder="12자 이하" />
+            </label>
+            <fieldset class="field rating">
+              <legend class="label">별점</legend>
+              <div class="stars">
+                <input type="radio" id="star5" name="rating" value="5" checked /><label for="star5" title="5점">★</label>
+                <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4점">★</label>
+                <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3점">★</label>
+                <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2점">★</label>
+                <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1점">★</label>
+              </div>
+            </fieldset>
+            <label class="field">
+              <span class="label">내용 <span id="fb-count" class="counter">0 / 500</span></span>
+              <textarea id="fb-message" name="message" rows="4" maxlength="500" placeholder="게임에 대한 의견을 남겨주세요"></textarea>
+            </label>
+            <button id="fb-submit" class="btn btn-primary" type="submit">등록</button>
+            <p id="fb-status" class="status" role="status" aria-live="polite"></p>
+          </form>
+          <div class="pane-head">
+            <h2 class="label">최근 피드백</h2>
+            <button id="refresh-feedback" class="link-btn" type="button">새로고침</button>
+          </div>
+          <div id="feedback-list" class="list-area"></div>
+        </section>
+      </aside>
+    </main>
+
+    <!-- 모바일 터치 조작 -->
+    <nav class="touch-controls" aria-label="터치 조작">
+      <button type="button" data-action="left" aria-label="왼쪽 이동">◀</button>
+      <button type="button" data-action="right" aria-label="오른쪽 이동">▶</button>
+      <button type="button" data-action="rotate" aria-label="회전">⟳</button>
+      <button type="button" data-action="down" aria-label="소프트 드롭">▼</button>
+      <button type="button" data-action="hardDrop" aria-label="하드 드롭">⤓</button>
+      <button type="button" data-action="pause" aria-label="일시정지">❚❚</button>
+    </nav>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
